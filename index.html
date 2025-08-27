@@ -3,41 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <title>Téléchargement base64</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 120px; }
+    input, select, button { margin-top: 10px; display: block; }
+  </style>
 </head>
 <body>
+<h2>Téléchargement Base64</h2>
+
+<form id="form">
+  <label>Base64 :</label>
+  <textarea name="data" required></textarea>
+
+  <label>Nom du fichier :</label>
+  <input type="text" name="name" value="fichier.bin" required>
+
+  <label>Type MIME :</label>
+  <input type="text" name="mime" value="application/octet-stream">
+
+  <button type="submit">Télécharger</button>
+</form>
+
 <script>
-  // Récupère le paramètre "data" de l'URL
-  const params = new URLSearchParams(window.location.search);
+function downloadBase64(base64, filename, mime) {
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    alert("❌ Base64 invalide ou trop long");
+  }
+}
+
+// --- Mode GET ---
+const params = new URLSearchParams(window.location.search);
+if (params.has("data")) {
   const base64 = params.get("data");
   const filename = params.get("name") || "fichier.bin";
   const mime = params.get("mime") || "application/octet-stream";
+  downloadBase64(base64, filename, mime);
+}
 
-  if (!base64) {
-    document.body.innerHTML = "<h3>Ajoute ?data=... dans l'URL</h3>";
-  } else {
-    try {
-      // Conversion base64 → binaire
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-
-      // Création du lien et déclenchement du téléchargement
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      document.body.innerHTML = `<p>Le fichier <b>${filename}</b> a été téléchargé.</p>`;
-    } catch (e) {
-      document.body.innerHTML = "<p style='color:red'>Erreur : base64 invalide</p>";
-    }
-  }
+// --- Mode POST (formulaire local) ---
+document.getElementById("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const base64 = form.data.value.trim();
+  const filename = form.name.value.trim();
+  const mime = form.mime.value.trim();
+  downloadBase64(base64, filename, mime);
+});
 </script>
 </body>
 </html>
